@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MolProp Analyzer</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="my-4">MolProp Analyzer</h1>
+        <h3>Automated Molecular Property Analysis</h3>
+
+      
+
+        <!-- File Upload Form -->
+        <form id="upload-form" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="file">Upload CSV File (Database ID, SMILES)</label>
+                <input type="file" class="form-control-file" id="file" name="file" accept=".csv" required>
+            </div>
+
+            <div class="form-group">
+                <label for="properties">Select Properties to Calculate:</label><br>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="MolWt" id="MolWt" name="properties">
+                    <label class="form-check-label" for="MolWt">Molecular Weight</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="NumRings" id="NumRings" name="properties">
+                    <label class="form-check-label" for="NumRings">Number of Rings</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="TPSA" id="TPSA" name="properties">
+                    <label class="form-check-label" for="TPSA">Topological Polar Surface Area (TPSA)</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="MolLogP" id="MolLogP" name="properties">
+                    <label class="form-check-label" for="MolLogP">Molecular LogP (MolLogP)</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="NumHAcceptors" id="NumHAcceptors" name="properties">
+                    <label class="form-check-label" for="NumHAcceptors">Number of Hydrogen Bond Acceptors</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="NumHDonors" id="NumHDonors" name="properties">
+                    <label class="form-check-label" for="NumHDonors">Number of Hydrogen Bond Donors</label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Calculate Properties</button>
+        </form>
+
+        <hr>
+
+        <!-- Progress and Download Links -->
+        <div id="progress-section" style="display: none;">
+            <h4>Processing Results</h4>
+            <p>Time taken: <span id="time-taken"></span> seconds</p>
+            <div id="download-links"></div>
+        </div>
+
+        <!-- Navigation Links -->
+        <hr>
+        <div>
+            <a href="{{ url_for('documentation') }}" class="btn btn-info">View Documentation</a>
+            <a href="/" class="btn btn-secondary">Go to Home</a>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            let formData = new FormData();
+            let fileInput = document.getElementById('file');
+            let selectedProperties = [];
+
+            // Get selected properties
+            let checkboxes = document.querySelectorAll('input[name="properties"]:checked');
+            checkboxes.forEach((checkbox) => {
+                selectedProperties.push(checkbox.value);
+            });
+
+            if (selectedProperties.length === 0) {
+                alert('Please select at least one property to calculate.');
+                return;
+            }
+
+            formData.append('file', fileInput.files[0]);
+            formData.append('properties', JSON.stringify(selectedProperties));
+
+            // Send the file and selected properties to the backend
+            fetch('/calculate', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    // Show time taken
+                    document.getElementById('time-taken').innerText = data.time_taken_seconds.toFixed(2);
+
+                    // Show download links for batch files
+                    let downloadSection = document.getElementById('download-links');
+                    downloadSection.innerHTML = '';
+
+                    data.batch_files.forEach(file => {
+                        let link = document.createElement('a');
+                        link.href = `/download/${file}`;
+                        link.innerText = `Download ${file}`;
+                        link.classList.add('btn', 'btn-success', 'my-2');
+                        downloadSection.appendChild(link);
+                        downloadSection.appendChild(document.createElement('br'));
+                    });
+
+                    document.getElementById('progress-section').style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+
+<!-- Footer Section -->
+<footer class="footer mt-5 py-4 bg-light">
+    <div class="container text-center">
+        <p>Corresponding Author: <a href="mailto:sharmar@aspire10x.com">Dr. Reetu Sharma</a> | <a href="mailto:sharmar@aspire10x.com">sharmar@aspire10x.com</a> | <a href="https://aspire10x.com/">Website</a></p>
+    </div>
+</footer>
+
+</body>
+</html>
